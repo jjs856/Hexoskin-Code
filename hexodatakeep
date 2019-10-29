@@ -1,0 +1,138 @@
+---
+title: "Hexoskin"
+author: "Jonathan Slaney"
+date: "03/10/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+####read in data for Auckland subject 1 PA
+
+```{r}
+library(readr)
+HXAP1 <- read_csv("C:/Users/jslan/Desktop/DatasetsHexoskin/Auckland/ID1_PA/ID1_PA_2018-02-20_AM_HX.csv")
+View(HXAP1)
+```
+
+```{r}
+summary(HXAP1)
+mean(HXAP1$`heart_rate [bpm](/api/datatype/19/)`)
+```
+
+```{r}
+summary(HXAP1$`breathing_rate [rpm](/api/datatype/33/)`)
+```
+
+####read in Auckland subject 1 for EL
+
+```{r}
+HXAE1 <- read_csv("C:/Users/jslan/Desktop/DatasetsHexoskin/Auckland/ID2_EL/ID2_EL_2018-02-20_AM_HX.csv")
+View(HXAE1)
+```
+
+```{r}
+summary(HXAE1)
+```
+
+####Read in an Auckland JG dataset
+```{r}
+HXAJ1 <- read_csv("C:/Users/jslan/Desktop/DatasetsHexoskin/Auckland/ID3_JG/ID3_JE_2018-02-20_AM_HX.csv")
+summary(HXAJ1)
+```
+
+### Read in all Auckland Files
+
+### Bind all data
+
+```{r}
+aucklandPAFiles <- list.files(path = "C:/Users/jslan/Desktop/DatasetsHexoskin/Auckland/ID1_PA", pattern = "*.csv", full.names= T)
+
+aucklandPAFiles %>%
+    purrr::map(function(i){
+      APA <- read.csv(i, header = TRUE) 
+      aucklandPAFiles <<- bind_rows(aucklandPAFiles, APA)
+    })
+```
+
+### Read in, bind all
+```{r}
+library(dplyr)
+library(tidyverse)
+
+hx_data_apa <- data_frame()
+
+setwd("C:/Users/jslan/Desktop/DatasetsHexoskin")
+
+hx_data_apa <- NULL
+dir(path = "C:/Users/jslan/Desktop/DatasetsHexoskin" , full.names = T, pattern = "*.csv", recursive = TRUE) %>%
+    purrr::map(function(i){
+      dfhx <- read.csv(i, header = TRUE)
+      dfhx$city <- stringr::str_sub(i, 41, 44)
+      dfhx$participants <- stringr::str_sub(i)
+      hx_data_apa <<- bind_rows(hx_data_apa, dfhx)
+    })
+
+View(hx_data_apa)
+
+```
+
+### Change column names, create hexodata df
+
+```{r}
+hexodata <- data.frame()
+hexodata <- hx_data_apa %>%
+  dplyr::rename(
+     time = time..s.256., 
+     respiratory_rate = breathing_rate..rpm...api.datatype.33.., 
+     heart_rate = heart_rate..bpm...api.datatype.19.., 
+     minute_ventilation = minute_ventilation..mL.min...api.datatype.36.., 
+     cadence = cadence..spm...api.datatype.53.., 
+     activity_g = activity..g...api.datatype.49..,
+  )
+hexodata
+for (i in 1:nrow(hexodata)) {
+  hexodata$participants[i] = str_split(string = hexodata$participants[i], pattern = "/")[[1]][7]  
+}
+
+```
+
+### Delete useless columns
+
+```{r}
+
+hexodata <- subset(hexodata, select = -minute_ventilation..L.min...api.datatype.36..)
+hexodata <- subset(hexodata, select = -sleep_position..NA...api.datatype.270..)
+hexodata <- subset(hexodata, select = -X)
+hexodata <- subset(hexodata, select = -time)
+
+hexodata
+
+write.csv(hexodata, "hexodata.csv") ## Saving do that I do not break my computer when working on this data! 
+
+```
+
+### Start fresh and add participants, rename them, 1 to many join. Load in hexodata
+
+```{r}
+library(readr)
+hexodata <- read_csv("C:/Users/jslan/Desktop/hexodata.csv")
+View(hexodata)
+```
+
+### Add participants column to DF. Try cbind() and read in path names. Then rename
+
+```{r}
+##hexodata$participants <- data$pnames
+
+##colnames(hexodata) <- cbind("X1","heart_rate","minute_ventilation","cadence", "activity_g","TIME","DATETIME","participant")
+
+##dir(path = "C:/Users/jslan/Desktop/DatasetsHexoskin" , full.names = T, pattern = "*.csv", recursive = TRUE) %>%
+##    purrr::map(function(i){
+      hexodata <- read.csv(i, header = TRUE)
+      hexodata$participant <- stringr::str_sub(i, 25, 40)}
+```
+
+### Make date and time usable. Use Lubridate
