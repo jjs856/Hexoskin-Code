@@ -78,6 +78,11 @@ dir(path = "C:/Users/jslan/Desktop/DatasetsHexoskin" , full.names = T, pattern =
 View(hx_data_apa)
 
 ```
+### ADD columns to dataframe
+```{r}
+#data$newcolumn<-data$existingcolumn
+```
+
 
 ### Change column names, create hexodata df
 
